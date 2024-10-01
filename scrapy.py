@@ -60,8 +60,6 @@ def scrape_amazon():
     rating_score_spans = soup.find_all("span", class_="a-icon-alt")
     rating_count_spans = soup.find_all("span", class_="a-size-base s-underline-text")
 
-    print(rating_score_spans)
-
     items = []
     
     elements = driver.find_elements(By.XPATH, title_xpath)
