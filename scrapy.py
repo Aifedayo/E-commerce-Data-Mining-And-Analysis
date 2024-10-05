@@ -26,24 +26,24 @@ def scrape_amazon():
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CLASS_NAME, page_class_name))
     )
+    # Brand selection for debugging
+    # for i in range(7):
+    #     # Wait until the 'brandsRefinements' section is loaded
+    #     WebDriverWait(driver, 20).until(
+    #         EC.presence_of_element_located((By.XPATH, "//div[contains(@id, 'brandsRefinements')]"))
+    #     )
+    #     model_checkbox_element = driver.find_element(By.XPATH, "//div[contains(@id, 'brandsRefinements')]")
+    #     ul_element = model_checkbox_element.find_element(By.XPATH, "(//ul[contains(@class, 'a-unordered-list')])[1]")
 
-    for i in range(7):
-        # Wait until the 'brandsRefinements' section is loaded
-        WebDriverWait(driver, 20).until(
-            EC.presence_of_element_located((By.XPATH, "//div[contains(@id, 'brandsRefinements')]"))
-        )
-        model_checkbox_element = driver.find_element(By.XPATH, "//div[contains(@id, 'brandsRefinements')]")
-        ul_element = model_checkbox_element.find_element(By.XPATH, "(//ul[contains(@class, 'a-unordered-list')])[1]")
+    #     span_element = ul_element.find_element(By.CLASS_NAME, 'a-declarative')
 
-        span_element = ul_element.find_element(By.CLASS_NAME, 'a-declarative')
+    #     checkbox = span_element.find_elements(By.XPATH, "//i[@class='a-icon a-icon-checkbox']")[i]
 
-        checkbox = span_element.find_elements(By.XPATH, "//i[@class='a-icon a-icon-checkbox']")[i]
-
-        WebDriverWait(driver, 20).until(
-            EC.element_to_be_clickable(checkbox)
-        )
-        if not checkbox.is_selected():
-            checkbox.click()
+    #     WebDriverWait(driver, 20).until(
+    #         EC.element_to_be_clickable(checkbox)
+    #     )
+    #     if not checkbox.is_selected():
+    #         checkbox.click()
         # All checkboxes selected :::
     
     items = {
