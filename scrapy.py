@@ -80,15 +80,14 @@ def scrape_amazon():
         
         elements = driver.find_elements(By.XPATH, title_xpath)
 
-        num_elements = min(len(elements), len(title_spans), len(rating_score_spans), len(rating_count_spans), len(pieces_sold_spans), len(price_spans))
-
-        for i in range(num_elements):
-            # Append the data directly to the lists in the items dictionary
-            items["name"].append(title_spans[i] if title_spans[i] else "No title")
-            items["rating_score"].append(rating_score_spans[i] if rating_score_spans[i] else "No rating")
-            items["rating_count"].append(rating_count_spans[i] if rating_count_spans[i] else 0)
-            items["pieces_sold"].append(pieces_sold_spans[i] if pieces_sold_spans[i] else "Zero bought")
-            items["price"].append(price_spans[i] if price_spans[i] else 0.0)
+        # Iterate through elements without limiting by num_elements
+        for i, element in enumerate(elements):
+            # Use the index to access each list and add None when necessary
+            items["name"].append(title_spans[i] if i < len(title_spans) else None)
+            items["rating_score"].append(rating_score_spans[i] if i < len(rating_score_spans) else None)
+            items["rating_count"].append(rating_count_spans[i] if i < len(rating_count_spans) else None)
+            items["pieces_sold"].append(pieces_sold_spans[i] if i < len(pieces_sold_spans) else None)
+            items["price"].append(price_spans[i] if i < len(price_spans) else None)
 
         try:
             WebDriverWait(driver, 10).until(
