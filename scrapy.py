@@ -16,53 +16,96 @@ driver = webdriver.Chrome(service=service)
 url = "https://www.amazon.com/s?i=computers-intl-ship&bbn=16225007011&rh=n%3A1292115011&dc&ds=v1%3AsYkCBCl%2Bka9plXFHMRFlkzFuPcELKHQ9Vt7AQ2GjoiY&qid=1727780297&refresh=2&rnid=85457740011&ref=sr_nr_p_123_1"
 printer = pprint.PrettyPrinter()
 
+
 def scrape_amazon():
+    driver.get(url)
+
     page_class_name = "sg-col-20-of-24"
     title_xpath = '//div[contains(@class, "sg-col-4-of-24 sg-col-4-of-12 s-result-item s-asin sg-col-4-of-16")]'
 
-    driver.get(url)
     WebDriverWait(driver, 10).until(
         EC.presence_of_element_located((By.CLASS_NAME, page_class_name))
     )
+
+    # for i in range(7):
+    #     # Wait until the 'brandsRefinements' section is loaded
+    #     WebDriverWait(driver, 20).until(
+    #         EC.presence_of_element_located((By.XPATH, "//div[contains(@id, 'brandsRefinements')]"))
+    #     )
+    #     model_checkbox_element = driver.find_element(By.XPATH, "//div[contains(@id, 'brandsRefinements')]")
+    #     ul_element = model_checkbox_element.find_element(By.XPATH, "(//ul[contains(@class, 'a-unordered-list')])[1]")
+
+    #     span_element = ul_element.find_element(By.CLASS_NAME, 'a-declarative')
+
+    #     checkbox = span_element.find_elements(By.XPATH, "//i[@class='a-icon a-icon-checkbox']")[i]
+
+    #     WebDriverWait(driver, 20).until(
+    #         EC.element_to_be_clickable(checkbox)
+    #     )
+    #     if not checkbox.is_selected():
+    #         checkbox.click()
+        # All checkboxes selected :::
     
-    page = driver.page_source  # Get the source code of the page
+    items = {
+        "name": [],
+        "rating_score": [],
+        "rating_count": [],
+        "price": []
+    }
 
-    soup = BeautifulSoup(page, "html.parser")
+    while True:
 
-    driver.get(url)
+        """START GRABBING THE ITEMS YOU NEED"""
+        # Wait for the page to update after interacting with checkboxes
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//h2[@class='a-size-mini a-spacing-none a-color-base s-line-clamp-4']"))
+        )
 
-    title_spans = [span.text for span in soup.find_all('h2', class_="a-size-mini a-spacing-none a-color-base s-line-clamp-4")]
-    rating_score_spans = [span.text for span in soup.find_all("span", class_="a-icon-alt")]
-    rating_count_spans = [span.text for span in soup.find_all("span", class_="a-size-base s-underline-text")]
-    price_spans = [ nested_span.text if nested_span else "0.0"
-                   for price_span in soup.find_all("span", class_="a-price")
-                   for nested_span in price_span.find_all("span", class_="a-offscreen")]
+        page = driver.page_source  # Get the source code of the page
+        soup = BeautifulSoup(page, "html.parser")
 
-    rating_div = soup.find_all("div", "a-section a-spacing-none a-spacing-top-mini")
-    seller_rating_score = [span.text for span in rating_div.find_all("span", class_="a-color-base")]
+        title_spans = [span.text.split(',')[0].strip() for span in soup.find_all('h2', class_="a-size-mini a-spacing-none a-color-base s-line-clamp-4")]
+        rating_score_spans = [span.text for span in soup.find_all("span", class_="a-icon-alt")]
+        rating_count_spans = [span.text for span in soup.find_all("span", class_="a-size-base s-underline-text")]
+        price_spans = [ nested_span.text if nested_span else "0.0"
+                    for price_span in soup.find_all("span", class_="a-price")
+                    for nested_span in price_span.find_all("span", class_="a-offscreen")]
+        
+        # # Print titles for debugging
+        # print(f"Extracted Titles: {title_spans}")
+        
+        elements = driver.find_elements(By.XPATH, title_xpath)
 
-    print(seller_rating_score)
+        num_elements = min(len(elements), len(title_spans), len(rating_score_spans), len(rating_count_spans), len(price_spans))
 
+        for i in range(num_elements):
+            # Append the data directly to the lists in the items dictionary
+            items["name"].append(title_spans[i] if title_spans[i] else "No title")
+            items["rating_score"].append(rating_score_spans[i] if rating_score_spans[i] else "No rating")
+            items["rating_count"].append(rating_count_spans[i] if rating_count_spans[i] else 0)
+            items["price"].append(price_spans[i] if price_spans[i] else 0.0)
 
-    items = []
+        try:
+            WebDriverWait(driver, 10).until(
+                EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Next')]"))
+            ).click()
+
+            # Wait for the new page to load after clicking "Next"
+            WebDriverWait(driver, 10).until(
+                EC.presence_of_element_located((By.XPATH, title_xpath))
+            )
+        
+        except Exception as e:
+            print("No more pages or unable to find 'Next' button.")
+            break
     
-    elements = driver.find_elements(By.XPATH, title_xpath)
-    for i, element in enumerate(elements):
-        # Find the title, rating score, and rating count within the current element
-        title = title_spans[i] if i < len(title_spans) else "No title"
-        rating_score = rating_score_spans[i] if i < len(rating_score_spans) else "No rating"
-        rating_count = rating_count_spans[i] if i < len(rating_count_spans) else 0
-        price = price_spans[i] if i < len(price_spans) else 0.0
-        seller_rating_score = seller_rating_score[i] if i < len(seller_rating_score) else "No rating"
-        # seller_rating_count = seller_rating_count[i] if i < len(seller_rating_count) else 0
-
-
-        # Append the extracted data to the items list
-        items.append((title, rating_score, rating_count, price, seller_rating_score))
+    df = pd.DataFrame.from_dict(items)
     
-    printer.pprint(items)
+    # Export to csv
+    df.to_csv('amazon_monitors_scraped_data.csv', index=False)
+    return items
 
-    driver.quit()
+    # driver.quit()
 
 if __name__ == "__main__":
     scrape_amazon()
