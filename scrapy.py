@@ -27,29 +27,30 @@ def scrape_amazon():
         EC.presence_of_element_located((By.CLASS_NAME, page_class_name))
     )
 
-    # for i in range(7):
-    #     # Wait until the 'brandsRefinements' section is loaded
-    #     WebDriverWait(driver, 20).until(
-    #         EC.presence_of_element_located((By.XPATH, "//div[contains(@id, 'brandsRefinements')]"))
-    #     )
-    #     model_checkbox_element = driver.find_element(By.XPATH, "//div[contains(@id, 'brandsRefinements')]")
-    #     ul_element = model_checkbox_element.find_element(By.XPATH, "(//ul[contains(@class, 'a-unordered-list')])[1]")
+    for i in range(7):
+        # Wait until the 'brandsRefinements' section is loaded
+        WebDriverWait(driver, 20).until(
+            EC.presence_of_element_located((By.XPATH, "//div[contains(@id, 'brandsRefinements')]"))
+        )
+        model_checkbox_element = driver.find_element(By.XPATH, "//div[contains(@id, 'brandsRefinements')]")
+        ul_element = model_checkbox_element.find_element(By.XPATH, "(//ul[contains(@class, 'a-unordered-list')])[1]")
 
-    #     span_element = ul_element.find_element(By.CLASS_NAME, 'a-declarative')
+        span_element = ul_element.find_element(By.CLASS_NAME, 'a-declarative')
 
-    #     checkbox = span_element.find_elements(By.XPATH, "//i[@class='a-icon a-icon-checkbox']")[i]
+        checkbox = span_element.find_elements(By.XPATH, "//i[@class='a-icon a-icon-checkbox']")[i]
 
-    #     WebDriverWait(driver, 20).until(
-    #         EC.element_to_be_clickable(checkbox)
-    #     )
-    #     if not checkbox.is_selected():
-    #         checkbox.click()
+        WebDriverWait(driver, 20).until(
+            EC.element_to_be_clickable(checkbox)
+        )
+        if not checkbox.is_selected():
+            checkbox.click()
         # All checkboxes selected :::
     
     items = {
         "name": [],
         "rating_score": [],
         "rating_count": [],
+        "pieces_sold": [],
         "price": []
     }
 
@@ -67,6 +68,9 @@ def scrape_amazon():
         title_spans = [span.text.split(',')[0].strip() for span in soup.find_all('h2', class_="a-size-mini a-spacing-none a-color-base s-line-clamp-4")]
         rating_score_spans = [span.text for span in soup.find_all("span", class_="a-icon-alt")]
         rating_count_spans = [span.text for span in soup.find_all("span", class_="a-size-base s-underline-text")]
+        pieces_sold_spans = [nested_span.text if nested_span else 0 
+                            for pieces_span in soup.find_all("div", "a-row a-size-base")
+                            for nested_span in pieces_span.find_all("span", class_="a-size-base a-color-secondary")]
         price_spans = [ nested_span.text if nested_span else "0.0"
                     for price_span in soup.find_all("span", class_="a-price")
                     for nested_span in price_span.find_all("span", class_="a-offscreen")]
@@ -76,13 +80,14 @@ def scrape_amazon():
         
         elements = driver.find_elements(By.XPATH, title_xpath)
 
-        num_elements = min(len(elements), len(title_spans), len(rating_score_spans), len(rating_count_spans), len(price_spans))
+        num_elements = min(len(elements), len(title_spans), len(rating_score_spans), len(rating_count_spans), len(pieces_sold_spans), len(price_spans))
 
         for i in range(num_elements):
             # Append the data directly to the lists in the items dictionary
             items["name"].append(title_spans[i] if title_spans[i] else "No title")
             items["rating_score"].append(rating_score_spans[i] if rating_score_spans[i] else "No rating")
             items["rating_count"].append(rating_count_spans[i] if rating_count_spans[i] else 0)
+            items["pieces_sold"].append(pieces_sold_spans[i] if pieces_sold_spans[i] else "Zero bought")
             items["price"].append(price_spans[i] if price_spans[i] else 0.0)
 
         try:
