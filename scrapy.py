@@ -20,12 +20,8 @@ printer = pprint.PrettyPrinter()
 def scrape_amazon():
     driver.get(url)
 
-    page_class_name = "sg-col-20-of-24"
     title_xpath = '//div[contains(@class, "sg-col-4-of-24 sg-col-4-of-12 s-result-item s-asin sg-col-4-of-16")]'
-
-    WebDriverWait(driver, 10).until(
-        EC.presence_of_element_located((By.CLASS_NAME, page_class_name))
-    )
+    page_reload = '//div[contains(@class "s-main-slot s-result-list s-search-results sg-row")]'
     # Brand selection for debugging
     # for i in range(7):
     #     # Wait until the 'brandsRefinements' section is loaded
@@ -53,12 +49,17 @@ def scrape_amazon():
         "pieces_sold": [],
         "price": []
     }
-
+    page_count = 0
     while True:
-
         """START GRABBING THE ITEMS YOU NEED"""
+
+        WebDriverWait(driver, 10).until(
+            EC.presence_of_element_located((By.XPATH, title_xpath))
+        )
+        time.sleep(2)
+
         # Wait for the page to update after interacting with checkboxes
-        WebDriverWait(driver, 20).until(
+        WebDriverWait(driver, 5).until(
             EC.presence_of_element_located((By.XPATH, "//h2[@class='a-size-mini a-spacing-none a-color-base s-line-clamp-4']"))
         )
 
@@ -68,17 +69,24 @@ def scrape_amazon():
         title_spans = [span.text.split(',')[0].strip() for span in soup.find_all('h2', class_="a-size-mini a-spacing-none a-color-base s-line-clamp-4")]
         rating_score_spans = [span.text for span in soup.find_all("span", class_="a-icon-alt")]
         rating_count_spans = [span.text for span in soup.find_all("span", class_="a-size-base s-underline-text")]
-        pieces_sold_spans = [nested_span.text if nested_span else 0 
-                            for pieces_span in soup.find_all("div", "a-row a-size-base")
+        pieces_sold_spans = [nested_span.text if nested_span else "0" 
+                            for pieces_span in soup.find_all("div", "a-section a-spacing-none a-spacing-top-micro")
                             for nested_span in pieces_span.find_all("span", class_="a-size-base a-color-secondary")]
-        price_spans = [ nested_span.text if nested_span else "0.0"
+        
+        price_spans = [nested_span.text if nested_span else "0.0"
                     for price_span in soup.find_all("span", class_="a-price")
                     for nested_span in price_span.find_all("span", class_="a-offscreen")]
-        
+    
         # # Print titles for debugging
-        # print(f"Extracted Titles: {title_spans}")
+        # print(f"Extracted Titles: {pieces_sold_spans}")
         
+        WebDriverWait(driver, 5).until(
+            EC.presence_of_element_located((By.XPATH, title_xpath))
+        )
+
         elements = driver.find_elements(By.XPATH, title_xpath)
+        page_count += 1
+        print(f" Page: {page_count} with {len(elements)}")
 
         # Iterate through elements without limiting by num_elements
         for i, element in enumerate(elements):
@@ -90,14 +98,9 @@ def scrape_amazon():
             items["price"].append(price_spans[i] if i < len(price_spans) else None)
 
         try:
-            WebDriverWait(driver, 10).until(
+            WebDriverWait(driver, 5).until(
                 EC.element_to_be_clickable((By.XPATH, "//a[contains(text(), 'Next')]"))
             ).click()
-
-            # Wait for the new page to load after clicking "Next"
-            WebDriverWait(driver, 10).until(
-                EC.presence_of_element_located((By.XPATH, title_xpath))
-            )
         
         except Exception as e:
             print("No more pages or unable to find 'Next' button.")
@@ -107,6 +110,8 @@ def scrape_amazon():
     
     # Export to csv
     df.to_csv('amazon_monitors_scraped_data.csv', index=False)
+
+    print(f"Missing values for all columns: {df.isna().sum()}")
     return items
 
     # driver.quit()
